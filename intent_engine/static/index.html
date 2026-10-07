@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intent Console</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1c2330; --muted: #5d6879; --border: #d9dee7;
+    --accent: #2563eb; --accent-text: #ffffff;
+    --ok: #15803d; --warn: #b45309; --crit: #b91c1c; --info: #475569;
+    --code: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --panel: #1b212b; --text: #e6e9ef; --muted: #98a2b3; --border: #2e3644;
+      --accent: #5b8def; --accent-text: #0b1020;
+      --ok: #4ade80; --warn: #fbbf24; --crit: #f87171; --info: #94a3b8;
+      --code: #232b38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  p.sub { margin: 0 0 18px; color: var(--muted); }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  textarea { width: 100%; min-height: 84px; resize: vertical; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+             background: var(--bg); color: var(--text); font: inherit; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+  label { color: var(--muted); font-size: .9rem; display: inline-flex; gap: 6px; align-items: center; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font: inherit; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 7px 12px; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: progress; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .examples button { text-align: left; font-size: .88rem; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; font-size: .82rem; font-weight: 600; }
+  .v-OK { color: var(--ok); } .v-WARN { color: var(--warn); } .v-CRIT { color: var(--crit); } .v-INFO { color: var(--info); }
+  .engine { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  th, td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; }
+  .scroll { overflow-x: auto; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .82rem; word-break: break-all; }
+  ul { margin: 6px 0 0; padding-left: 20px; }
+  .warn-list { color: var(--warn); }
+  .err { color: var(--crit); }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); }
+  a { color: var(--accent); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Intent Console</h1>
+  <p class="sub">Ask a question about the 5G network in plain language. The engine plans read-only PromQL, runs it through Grafana, computes the numbers and explains them.</p>
+
+  <section>
+    <textarea id="intent" maxlength="1000" placeholder="e.g. Is the UPF forwarding everything the UE sends?"></textarea>
+    <div class="row">
+      <label>Range
+        <select id="range">
+          <option value="5">5 min</option><option value="10">10 min</option><option value="15" selected>15 min</option>
+          <option value="30">30 min</option><option value="60">1 hour</option><option value="180">3 hours</option><option value="360">6 hours</option>
+        </select>
+      </label>
+      <label>Engine
+        <select id="engine"><option value="auto" selected>auto</option><option value="gemini">gemini</option><option value="rules">rules</option></select>
+      </label>
+      <label><input type="checkbox" id="dash" checked> create Grafana dashboard</label>
+      <button class="primary" id="run">Analyse</button>
+      <span id="status" class="engine"></span>
+    </div>
+    <div class="examples" id="examples"></div>
+  </section>
+
+  <div id="out" class="hidden"></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var EXAMPLES = [
+    { text: "Is the UPF forwarding everything the UE sends? Compare in vs out traffic for the last 10 minutes", range: 10 },
+    { text: "Is any network function down or overloaded?", range: 15 },
+    { text: "How many UEs are registered and how many PDU sessions are active?", range: 15 },
+    { text: "Is there congestion on the N6 link?", range: 15 },
+    { text: "Compare downlink traffic leaving the app server with what reaches the UE", range: 10 },
+    { text: "What are the CPU and memory usage of each core network function?", range: 30 }
+  ];
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "class") n.className = attrs[k]; else n.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function fmt(v, unit) {
+    if (v === null || v === undefined) return "n/a";
+    var a = Math.abs(v);
+    function sc(x, d) { return (Math.round(x * 100 / d) / 100).toString(); }
+    if (unit === "bps") {
+      if (a >= 1e9) return sc(v, 1e9) + " Gbps"; if (a >= 1e6) return sc(v, 1e6) + " Mbps";
+      if (a >= 1e3) return sc(v, 1e3) + " kbps"; return Math.round(v) + " bps";
+    }
+    if (unit === "bytes") {
+      if (a >= 1073741824) return sc(v, 1073741824) + " GiB"; if (a >= 1048576) return sc(v, 1048576) + " MiB";
+      if (a >= 1024) return sc(v, 1024) + " KiB"; return Math.round(v) + " B";
+    }
+    if (unit === "percent") return sc(v, 1) + " %";
+    if (unit === "ms") return sc(v, 1) + " ms";
+    if (unit === "pps") return sc(v, 1) + " pkt/s";
+    if (unit === "bool") return v >= 0.5 ? "up" : "down";
+    return (Math.round(v * 1000) / 1000).toString();
+  }
+  function h2(text) { return el("h2", {}, [text]); }
+  function list(items) { return el("ul", {}, items.map(function (t) { return el("li", {}, [t]); })); }
+
+  function statsRow(label, st, unit, title) {
+    var cells = [label];
+    if (!st || !st.n) {
+      cells.push("no data");
+      var tr0 = el("tr", {}, cells.map(function (c, i) { var td = el("td", i === 1 ? { colspan: "8" } : {}, [c]); return td; }));
+      return tr0;
+    }
+    cells = cells.concat([
+      String(st.n), fmt(st.min, unit), fmt(st.mean, unit), fmt(st.p95, unit), fmt(st.max, unit), fmt(st.last, unit),
+      (Math.round(st.slope_per_min * 100) / 100).toString(), Math.round(st.nonzero_fraction * 100) + " %"
+    ]);
+    var tr = el("tr", {}, cells.map(function (c) { return el("td", {}, [c]); }));
+    if (title) tr.title = title;
+    return tr;
+  }
+
+  function render(r) {
+    var out = $("out");
+    out.innerHTML = "";
+    out.classList.remove("hidden");
+    var a = r.analysis || {};
+
+    var head = el("section", {});
+    var badges = el("div", { "class": "badges" }, [
+      el("span", { "class": "badge v-" + a.verdict }, [a.verdict || "INFO"]),
+      el("span", { "class": "engine" }, ["engine: " + r.engine]),
+      el("span", { "class": "engine" }, ["analysis: " + (a.source || "n/a")]),
+      el("span", { "class": "engine" }, ["range: " + r.range_minutes + " min"]),
+      el("span", { "class": "engine" }, [r.intent_id])
+    ]);
+    if (r.dashboard && /^https?:\/\//.test(r.dashboard.url)) {
+      badges.appendChild(el("a", { href: r.dashboard.url, target: "_blank", rel: "noopener" }, ["Open Grafana dashboard"]));
+    }
+    head.appendChild(badges);
+    head.appendChild(el("p", {}, [a.summary || ""]));
+    head.appendChild(el("p", { "class": "engine" }, ["Goal: " + (r.plan && r.plan.goal || "")]));
+    if (r.plan && r.plan.completed_ids && r.plan.completed_ids.length) {
+      head.appendChild(el("p", { "class": "engine" }, ["Added automatically so in-vs-out can be computed: " + r.plan.completed_ids.join(", ")]));
+    }
+    out.appendChild(head);
+
+    if (r.warnings && r.warnings.length) {
+      var w = el("section", {}); w.appendChild(h2("Warnings"));
+      var wl = list(r.warnings); wl.className = "warn-list"; w.appendChild(wl); out.appendChild(w);
+    }
+
+    if (a.findings && a.findings.length) {
+      var f = el("section", {}); f.appendChild(h2("Findings")); f.appendChild(list(a.findings));
+      if (a.recommendations && a.recommendations.length) { f.appendChild(h2("Recommendations")); f.lastChild.style.marginTop = "14px"; f.appendChild(list(a.recommendations)); }
+      out.appendChild(f);
+    } else if (a.recommendations && a.recommendations.length) {
+      var rr = el("section", {}); rr.appendChild(h2("Recommendations")); rr.appendChild(list(a.recommendations)); out.appendChild(rr);
+    }
+
+    if (r.comparisons && r.comparisons.length) {
+      var c = el("section", {}); c.appendChild(h2("In vs out"));
+      var ct = el("table", {});
+      ct.appendChild(el("tr", {}, ["pair", "direction", "mean in", "mean out", "ratio out/in", "verdict"].map(function (t) { return el("th", {}, [t]); })));
+      r.comparisons.forEach(function (x) {
+        ct.appendChild(el("tr", {}, [
+          x.a + " → " + x.b, x.direction || "", fmt(x.mean_a_bps, "bps"), fmt(x.mean_b_bps, "bps"),
+          x.ratio_b_over_a === null ? "n/a" : x.ratio_b_over_a.toFixed(3), x.verdict
+        ].map(function (t, i) { return el("td", i === 5 ? { "class": x.verdict === "balanced" ? "v-OK" : (x.verdict === "loss" ? "v-CRIT" : "v-INFO") } : {}, [t]); })));
+      });
+      c.appendChild(el("div", { "class": "scroll" }, [ct])); out.appendChild(c);
+    }
+
+    var s = el("section", {}); s.appendChild(h2("Query statistics"));
+    var tbl = el("table", {});
+    tbl.appendChild(el("tr", {}, ["query", "n", "min", "mean", "p95", "max", "last", "slope/min", "non-zero"].map(function (t) { return el("th", {}, [t]); })));
+    (r.results || []).forEach(function (q) {
+      if (!q.ok) {
+        tbl.appendChild(el("tr", {}, [el("td", {}, [q.title]), el("td", { colspan: "8", "class": "err" }, ["failed: " + (q.error || "unknown error")])]));
+        return;
+      }
+      var label = q.title + " [" + q.unit + (q.series_count > 1 ? ", " + q.series_count + " series, " + q.stats_mode : "") + "]";
+      tbl.appendChild(statsRow(label, q.stats, q.unit, q.promql));
+      (q.series || []).forEach(function (se) {
+        var name = Object.keys(se.labels).map(function (k) { return k + "=" + se.labels[k]; }).join(", ") || "series";
+        tbl.appendChild(statsRow("  ↳ " + name, se.stats, q.unit, ""));
+      });
+    });
+    s.appendChild(el("div", { "class": "scroll" }, [tbl]));
+    var d = el("details", {}); d.appendChild(el("summary", {}, ["PromQL used"]));
+    d.appendChild(list((r.plan && r.plan.queries || []).map(function (q) { return q.id + ": " + q.promql; })));
+    s.appendChild(d); out.appendChild(s);
+  }
+
+  function run() {
+    var text = $("intent").value.trim();
+    if (!text) { $("status").textContent = "Please type an intent."; return; }
+    var btn = $("run"); btn.disabled = true; $("status").textContent = "Working…";
+    fetch("/api/intent", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        intent: text, range_minutes: parseInt($("range").value, 10),
+        create_dashboard: $("dash").checked, engine: $("engine").value
+      })
+    }).then(function (resp) {
+      return resp.json().then(function (body) { return { ok: resp.ok, status: resp.status, body: body }; });
+    }).then(function (res) {
+      if (!res.ok) {
+        var msg = typeof res.body.detail === "string" ? res.body.detail : JSON.stringify(res.body.detail);
+        $("status").textContent = "";
+        var o = $("out"); o.innerHTML = ""; o.classList.remove("hidden");
+        var sec = el("section", {}); sec.appendChild(el("p", { "class": "err" }, ["Error " + res.status + ": " + msg])); o.appendChild(sec);
+        return;
+      }
+      $("status").textContent = "";
+      render(res.body);
+    }).catch(function (e) {
+      $("status").textContent = "Request failed: " + e.message;
+    }).then(function () { btn.disabled = false; });
+  }
+
+  EXAMPLES.forEach(function (ex) {
+    var b = el("button", { type: "button" }, [ex.text]);
+    b.addEventListener("click", function () { $("intent").value = ex.text; $("range").value = String(ex.range); run(); });
+    $("examples").appendChild(b);
+  });
+  $("run").addEventListener("click", run);
+  $("intent").addEventListener("keydown", function (e) { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) run(); });
+})();
+</script>
+</body>
+</html>

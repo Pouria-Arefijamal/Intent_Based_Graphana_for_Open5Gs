@@ -1,0 +1,190 @@
+# Metric catalog for the intent engine (SPEC section 4).
+# `recipes` are vetted PromQL expressions used by the rules engine and offered
+# to the LLM planner. `metrics` is the static part of the PromQL allow-list
+# (it is united with the live Prometheus metric names at runtime).
+#
+# Direction convention: uplink = UE -> app-server, downlink = app-server -> UE.
+# For the UPF TUN device `ogstun`: kernel rx_bytes = uplink, tx_bytes = downlink.
+
+recipes:
+  - id: ue_uplink_bps
+    title: UE uplink (uesimtun0 tx)
+    unit: bps
+    kind: timeseries
+    description: Bits per second the UE sends into its 5G tunnel (uplink, entry point).
+    promql: 'rate(ibg_iface_tx_bytes_total{service="ue",iface="uesimtun0"}[30s])*8'
+  - id: ue_downlink_bps
+    title: UE downlink (uesimtun0 rx)
+    unit: bps
+    kind: timeseries
+    description: Bits per second arriving at the UE through its 5G tunnel (downlink, exit point).
+    promql: 'rate(ibg_iface_rx_bytes_total{service="ue",iface="uesimtun0"}[30s])*8'
+  - id: upf_uplink_bps
+    title: UPF uplink (ogstun rx)
+    unit: bps
+    kind: timeseries
+    description: Uplink user-plane traffic as seen by the UPF TUN device (kernel rx = uplink).
+    promql: 'rate(ibg_iface_rx_bytes_total{service="upf",iface="ogstun"}[30s])*8'
+  - id: upf_downlink_bps
+    title: UPF downlink (ogstun tx)
+    unit: bps
+    kind: timeseries
+    description: Downlink user-plane traffic as seen by the UPF TUN device (kernel tx = downlink).
+    promql: 'rate(ibg_iface_tx_bytes_total{service="upf",iface="ogstun"}[30s])*8'
+  - id: server_rx_bps
+    title: App-server receive (N6 side)
+    unit: bps
+    kind: timeseries
+    description: Bits per second received by the app-server on eth0 (uplink exit point on N6).
+    promql: 'rate(ibg_iface_rx_bytes_total{service="app-server",iface="eth0"}[30s])*8'
+  - id: server_tx_bps
+    title: App-server transmit (N6 side)
+    unit: bps
+    kind: timeseries
+    description: Bits per second sent by the app-server on eth0 (downlink entry point on N6).
+    promql: 'rate(ibg_iface_tx_bytes_total{service="app-server",iface="eth0"}[30s])*8'
+  - id: gnb_rx_bps
+    title: gNB receive (eth0)
+    unit: bps
+    kind: timeseries
+    description: Bits per second received by the gNB on eth0.
+    promql: 'rate(ibg_iface_rx_bytes_total{service="gnb",iface="eth0"}[30s])*8'
+  - id: gnb_tx_bps
+    title: gNB transmit (eth0)
+    unit: bps
+    kind: timeseries
+    description: Bits per second sent by the gNB on eth0.
+    promql: 'rate(ibg_iface_tx_bytes_total{service="gnb",iface="eth0"}[30s])*8'
+  - id: upf_cpu_pct
+    title: UPF CPU
+    unit: percent
+    kind: timeseries
+    description: CPU used by the UPF container, in percent of one core.
+    promql: 'rate(ibg_container_cpu_seconds_total{service="upf"}[30s])*100'
+  - id: nf_cpu_pct
+    title: CPU per container
+    unit: percent
+    kind: timeseries
+    description: CPU used by each container, in percent of one core (one series per service label).
+    promql: 'rate(ibg_container_cpu_seconds_total[30s])*100'
+  - id: nf_mem_bytes
+    title: Memory per container
+    unit: bytes
+    kind: timeseries
+    description: Working-set memory of each container (one series per service label).
+    promql: 'ibg_container_memory_bytes'
+  - id: nf_up
+    title: Container up
+    unit: bool
+    kind: stat
+    description: 1 if the container of a service is running, 0 if it exists but is stopped.
+    promql: 'ibg_container_up'
+  - id: sbi_up
+    title: SBI port reachable
+    unit: bool
+    kind: stat
+    description: 1 if the TCP connect to the NF's SBI port 7777 succeeds.
+    promql: 'ibg_nf_sbi_up'
+  - id: registered_ues
+    title: Registered UEs (AMF)
+    unit: count
+    kind: stat
+    description: Number of UEs currently registered at the AMF.
+    promql: 'fivegs_amffunction_rm_registeredsubnbr'
+  - id: pdu_sessions_amf
+    title: PDU sessions (AMF)
+    unit: count
+    kind: stat
+    description: Active PDU sessions as counted by the AMF.
+    promql: 'amf_session'
+  - id: pdu_sessions_smf
+    title: PFCP sessions (SMF)
+    unit: count
+    kind: stat
+    description: Active PFCP sessions at the SMF (one per PDU session).
+    promql: 'pfcp_sessions_active'
+  - id: smf_ues_active
+    title: Active UEs (SMF)
+    unit: count
+    kind: stat
+    description: Number of UEs with an active session as counted by the SMF.
+    promql: 'ues_active'
+  - id: pdu_sessions_upf
+    title: PDU sessions (UPF)
+    unit: count
+    kind: stat
+    description: Active PDU sessions as counted by the UPF.
+    promql: 'fivegs_upffunction_upf_sessionnbr'
+  - id: connected_gnbs
+    title: Connected gNBs
+    unit: count
+    kind: stat
+    description: Number of gNBs connected to the AMF.
+    promql: 'gnb'
+  - id: qdisc_backlog_pkts
+    title: N6 qdisc backlog
+    unit: pkts
+    kind: timeseries
+    description: Packets queued in the app-server eth0 qdisc (N6 side); growing backlog means congestion.
+    promql: 'ibg_qdisc_backlog_packets'
+  - id: qdisc_drops_per_s
+    title: N6 qdisc drops
+    unit: pps
+    kind: timeseries
+    description: Packets dropped per second by the app-server eth0 qdisc.
+    promql: 'rate(ibg_qdisc_drops_total[30s])'
+  - id: path_up
+    title: End-to-end path up
+    unit: bool
+    kind: stat
+    description: 1 if a ping from the UE tunnel to the app-server succeeds.
+    promql: 'ibg_path_up'
+  - id: path_rtt_ms
+    title: End-to-end RTT
+    unit: ms
+    kind: timeseries
+    description: Round-trip time of the ping from the UE tunnel to the app-server.
+    promql: 'ibg_path_rtt_ms'
+  - id: upf_ogstun_drops
+    title: UPF ogstun drops
+    unit: pps
+    kind: timeseries
+    description: Packets per second dropped on the UPF TUN device (rx + tx).
+    promql: 'rate(ibg_iface_rx_drop_total{service="upf",iface="ogstun"}[30s])+rate(ibg_iface_tx_drop_total{service="upf",iface="ogstun"}[30s])'
+
+metrics:
+  - {name: ibg_container_up, description: "Gauge, labels service/role. 1 if the container is running."}
+  - {name: ibg_nf_sbi_up, description: "Gauge, label service. 1 if TCP connect to <service>:7777 works."}
+  - {name: ibg_iface_rx_bytes_total, description: "Counter, labels service/iface. Interface received bytes (upf eth0/ogstun, gnb eth0, ue eth0/uesimtun0, app-server eth0)."}
+  - {name: ibg_iface_tx_bytes_total, description: "Counter, labels service/iface. Interface transmitted bytes."}
+  - {name: ibg_iface_rx_packets_total, description: "Counter, labels service/iface. Interface received packets."}
+  - {name: ibg_iface_tx_packets_total, description: "Counter, labels service/iface. Interface transmitted packets."}
+  - {name: ibg_iface_rx_drop_total, description: "Counter, labels service/iface. Interface receive drops."}
+  - {name: ibg_iface_tx_drop_total, description: "Counter, labels service/iface. Interface transmit drops."}
+  - {name: ibg_qdisc_backlog_packets, description: "Gauge, labels service/dev/kind. Queued packets in the app-server eth0 qdisc."}
+  - {name: ibg_qdisc_backlog_bytes, description: "Gauge, labels service/dev/kind. Queued bytes in the app-server eth0 qdisc."}
+  - {name: ibg_qdisc_sent_bytes_total, description: "Counter, labels service/dev/kind. Bytes sent through the qdisc."}
+  - {name: ibg_qdisc_drops_total, description: "Counter, labels service/dev/kind. Packets dropped by the qdisc."}
+  - {name: ibg_qdisc_overlimits_total, description: "Counter, labels service/dev/kind. Qdisc overlimit events."}
+  - {name: ibg_path_up, description: "Gauge. 1 if ping from the UE tunnel to the app-server succeeds."}
+  - {name: ibg_path_rtt_ms, description: "Gauge. RTT in ms of that ping (absent when the path is down)."}
+  - {name: ibg_ue_session_up, description: "Gauge. 1 if the uesimtun0 tunnel exists in the UE container."}
+  - {name: ibg_exporter_scrape_seconds, description: "Gauge. Duration of the last exporter collection."}
+  - {name: ibg_exporter_errors_total, description: "Counter, label collector. Exporter collector failures."}
+  - {name: ibg_intent_requests_total, description: "Counter, labels engine/outcome. Intent engine requests."}
+  - {name: ibg_intent_llm_errors_total, description: "Counter, label model. Gemini call failures per model."}
+  - {name: ibg_container_cpu_seconds_total, description: "Counter, label service. Cumulative container CPU seconds; rate()*100 = percent of one core."}
+  - {name: ibg_container_memory_bytes, description: "Gauge, label service. Container working-set memory."}
+  - {name: fivegs_amffunction_rm_registeredsubnbr, description: "AMF gauge. Registered subscribers."}
+  - {name: amf_session, description: "AMF gauge. PDU sessions known to the AMF."}
+  - {name: pfcp_sessions_active, description: "SMF gauge. Active PFCP sessions (one per PDU session)."}
+  - {name: ues_active, description: "SMF gauge. UEs with an active session."}
+  - {name: fivegs_upffunction_upf_sessionnbr, description: "UPF gauge. PDU sessions known to the UPF."}
+  - {name: gnb, description: "AMF gauge. Connected gNBs."}
+  - {name: up, description: "Prometheus gauge, labels job/instance. 1 if the scrape target is healthy."}
+  - {name: node_cpu_seconds_total, description: "node-exporter counter, labels cpu/mode. Host CPU seconds."}
+  - {name: node_memory_MemTotal_bytes, description: "node-exporter gauge. Host total memory."}
+  - {name: node_memory_MemAvailable_bytes, description: "node-exporter gauge. Host available memory."}
+  - {name: node_load1, description: "node-exporter gauge. Host 1-minute load average."}
+  - {name: node_network_receive_bytes_total, description: "node-exporter counter, label device. Host NIC received bytes."}
+  - {name: node_network_transmit_bytes_total, description: "node-exporter counter, label device. Host NIC transmitted bytes."}

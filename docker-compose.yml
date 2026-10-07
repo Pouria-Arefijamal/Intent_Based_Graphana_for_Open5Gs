@@ -1,0 +1,305 @@
+# docker-compose.yml — the whole testbed: 5G core (Open5GS) + RAN simulator (UERANSIM) + data server
+# + monitoring (Prometheus, Grafana, cAdvisor, node_exporter, custom exporter) + intent engine.
+#
+# Do NOT run `docker compose up` directly: use  scripts/ibg.sh up  (it provisions the subscriber and
+# starts things in the right order). It passes:  --env-file config/open5gs.env --env-file .env
+name: ibg
+
+x-open5gs: &open5gs
+  image: docker_open5gs:latest
+  env_file: [config/open5gs.env]
+  restart: unless-stopped
+
+x-log: &log-volume ./runtime/log:/open5gs/install/var/log/open5gs
+x-time: &localtime /etc/localtime:/etc/localtime:ro
+
+services:
+  # ───────────────────────── 5G CORE: database ─────────────────────────
+  mongo:
+    image: mongo:6.0
+    container_name: ibg-mongo
+    command: --bind_ip 0.0.0.0
+    restart: unless-stopped
+    volumes: [ibg_mongo:/data/db, *localtime]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      default: {ipv4_address: "${MONGO_IP}"}
+
+  webui:
+    <<: *open5gs
+    container_name: ibg-webui
+    depends_on: [mongo]
+    environment: [COMPONENT_NAME=webui, "DB_URI=mongodb://${MONGO_IP}/open5gs"]
+    volumes: [./third_party/docker_open5gs/webui:/mnt/webui, *localtime]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${WEBUI_PORT:-9999}:9999/tcp"]
+    networks:
+      default: {ipv4_address: "${WEBUI_IP}"}
+
+  # ───────── NRF ─────────
+  nrf:
+    <<: *open5gs
+    container_name: ibg-nrf
+    environment: ["COMPONENT_NAME=nrf"]
+    volumes: [./third_party/docker_open5gs/nrf:/mnt/nrf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${NRF_IP}"}
+
+  # ───────── SCP ─────────
+  scp:
+    <<: *open5gs
+    container_name: ibg-scp
+    depends_on: [nrf]
+    environment: ["COMPONENT_NAME=scp"]
+    volumes: [./third_party/docker_open5gs/scp:/mnt/scp, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${SCP_IP}"}
+
+  # ───────── AUSF ─────────
+  ausf:
+    <<: *open5gs
+    container_name: ibg-ausf
+    depends_on: [nrf, scp]
+    environment: ["COMPONENT_NAME=ausf"]
+    volumes: [./third_party/docker_open5gs/ausf:/mnt/ausf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${AUSF_IP}"}
+
+  # ───────── UDR ─────────
+  udr:
+    <<: *open5gs
+    container_name: ibg-udr
+    depends_on: [nrf, scp, mongo]
+    environment: ["COMPONENT_NAME=udr", "DB_URI=mongodb://${MONGO_IP}/open5gs"]
+    volumes: [./third_party/docker_open5gs/udr:/mnt/udr, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${UDR_IP}"}
+
+  # ───────── UDM ─────────
+  udm:
+    <<: *open5gs
+    container_name: ibg-udm
+    depends_on: [nrf, scp]
+    environment: ["COMPONENT_NAME=udm"]
+    volumes: [./third_party/docker_open5gs/udm:/mnt/udm, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${UDM_IP}"}
+
+  # ───────── PCF ─────────
+  pcf:
+    <<: *open5gs
+    container_name: ibg-pcf
+    depends_on: [nrf, scp, mongo]
+    environment: ["COMPONENT_NAME=pcf", "DB_URI=mongodb://${MONGO_IP}/open5gs"]
+    volumes: [./third_party/docker_open5gs/pcf:/mnt/pcf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${PCF_IP}"}
+
+  # ───────── BSF ─────────
+  bsf:
+    <<: *open5gs
+    container_name: ibg-bsf
+    depends_on: [nrf, scp, mongo]
+    environment: ["COMPONENT_NAME=bsf", "DB_URI=mongodb://${MONGO_IP}/open5gs"]
+    volumes: [./third_party/docker_open5gs/bsf:/mnt/bsf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${BSF_IP}"}
+
+  # ───────── NSSF ─────────
+  nssf:
+    <<: *open5gs
+    container_name: ibg-nssf
+    depends_on: [nrf, scp, mongo]
+    environment: ["COMPONENT_NAME=nssf"]
+    volumes: [./third_party/docker_open5gs/nssf:/mnt/nssf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${NSSF_IP}"}
+
+  # ───────── AMF ─────────
+  amf:
+    <<: *open5gs
+    container_name: ibg-amf
+    depends_on: [nrf, scp, ausf, udm, udr, pcf, bsf]
+    environment: ["COMPONENT_NAME=amf"]
+    volumes: [./third_party/docker_open5gs/amf:/mnt/amf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${AMF_IP}"}
+
+  # ───────── SMF ─────────
+  smf:
+    <<: *open5gs
+    container_name: ibg-smf
+    depends_on: [nrf, scp, amf]
+    environment: ["COMPONENT_NAME=smf", "DEPLOY_MODE=5G"]
+    volumes: [./third_party/docker_open5gs/smf:/mnt/smf, *log-volume, *localtime]
+    networks:
+      default: {ipv4_address: "${SMF_IP}"}
+
+  # ───────── UPF (user plane) — needs NET_ADMIN + a TUN device + IP forwarding ─────────
+  upf:
+    <<: *open5gs
+    container_name: ibg-upf
+    depends_on: [nrf, scp, smf]
+    environment: [COMPONENT_NAME=upf]
+    volumes: [./third_party/docker_open5gs/upf:/mnt/upf, *log-volume, *localtime]
+    cap_add: [NET_ADMIN]
+    privileged: true
+    sysctls: ["net.ipv4.ip_forward=1"]
+    networks:
+      default: {ipv4_address: "${UPF_IP}"}
+
+  # ───────────────────────── RAN simulator (UERANSIM) ─────────────────────────
+  gnb:
+    image: docker_ueransim:latest
+    container_name: ibg-gnb
+    restart: unless-stopped
+    stdin_open: true   # upstream init script ends with an interactive bash; it needs a TTY to stay alive
+    tty: true
+    env_file: [config/open5gs.env]
+    environment: [COMPONENT_NAME=ueransim-gnb]
+    volumes: [./third_party/docker_open5gs/ueransim:/mnt/ueransim, *localtime]
+    cap_add: [NET_ADMIN]
+    privileged: true
+    depends_on: [amf]
+    networks:
+      default: {ipv4_address: "${NR_GNB_IP}"}
+
+  ue:
+    build: {context: stack/ue}
+    image: ibg-ue:latest
+    container_name: ibg-ue
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    env_file: [config/open5gs.env]
+    environment: [COMPONENT_NAME=ueransim-ue]
+    volumes:
+      - ./third_party/docker_open5gs/ueransim:/mnt/ueransim
+      - ./stack/ue/ueransim-ue.yaml:/mnt/ueransim/ueransim-ue.yaml:ro   # opType: OPC override
+      - *localtime
+    cap_add: [NET_ADMIN]
+    privileged: true
+    depends_on: [gnb]
+    networks:
+      default: {ipv4_address: "${NR_UE_IP}"}
+
+  # ───────────────────────── "Internet" side (N6) ─────────────────────────
+  app-server:
+    build: {context: appserver}
+    image: ibg-appserver:latest
+    container_name: ibg-app-server
+    restart: unless-stopped
+    cap_add: [NET_ADMIN]
+    environment: ["UPF_IP=${UPF_IP}", "UE_POOL=${UE_IPV4_INTERNET}"]
+    networks:
+      default: {ipv4_address: "${APP_SERVER_IP}"}
+
+  # ───────────────────────── Monitoring ─────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: ibg-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ibg_prom_data:/prometheus
+    ports: ["${BIND_ADDR:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"]
+    networks:
+      default: {ipv4_address: 172.30.0.240}
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: ibg-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - "GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}"
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true          # read-only viewing without login (lab setup)
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=true        # lets the Intent Console iframe live inside a dashboard
+      - GF_PANELS_DISABLE_SANITIZE_HTML=true    # lets a text panel contain that iframe
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ibg_grafana_data:/var/lib/grafana
+    ports: ["${BIND_ADDR:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"]
+    depends_on: [prometheus]
+    networks:
+      default: {ipv4_address: 172.30.0.241}
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: ibg-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices: ["/dev/kmsg"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports: ["${BIND_ADDR:-127.0.0.1}:${CADVISOR_PORT:-8081}:8080"]
+    networks:
+      default: {ipv4_address: 172.30.0.242}
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: ibg-node-exporter
+    restart: unless-stopped
+    command: [--path.rootfs=/host]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+    ports: ["${BIND_ADDR:-127.0.0.1}:${NODE_EXPORTER_PORT:-9100}:9100"]
+    networks:
+      default: {ipv4_address: 172.30.0.243}
+
+  exporter:
+    build: {context: ., dockerfile: exporter/Dockerfile}
+    image: ibg-exporter:latest
+    container_name: ibg-exporter
+    restart: unless-stopped
+    environment: ["COMPOSE_PROJECT=ibg", "APP_SERVER_IP=${APP_SERVER_IP}", "EXPORTER_PORT=9200"]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]   # read-only mount, but the Docker API is still powerful — see README "Security"
+    networks:
+      default: {ipv4_address: 172.30.0.244}
+
+  intent-engine:
+    build: {context: ., dockerfile: intent_engine/Dockerfile}
+    image: ibg-intent-engine:latest
+    container_name: ibg-intent-engine
+    restart: unless-stopped
+    environment:
+      - "GEMINI_API_KEY=${GEMINI_API_KEY:-}"
+      - "GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-flash-latest}"
+      - GRAFANA_URL=http://grafana:3000
+      - "GRAFANA_USER=admin"
+      - "GRAFANA_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}"
+      - GRAFANA_DS_UID=ibg-prometheus
+      - PROM_URL=http://prometheus:9090
+      - "PUBLIC_GRAFANA_URL=http://${PUBLIC_HOST:-localhost}:${GRAFANA_PORT:-3000}"
+      - "PUBLIC_INTENT_URL=http://${PUBLIC_HOST:-localhost}:${INTENT_PORT:-8088}"
+      - INTENT_PORT=8088
+    ports: ["${BIND_ADDR:-127.0.0.1}:${INTENT_PORT:-8088}:8088"]
+    depends_on: [grafana, prometheus]
+    networks:
+      default: {ipv4_address: 172.30.0.245}
+
+networks:
+  default:
+    name: ibg_net
+    ipam:
+      config:
+        - subnet: "${TEST_NETWORK}"
+
+volumes:
+  ibg_mongo:
+  ibg_prom_data:
+  ibg_grafana_data:
