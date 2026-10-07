@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this project in your work, please cite it as below."
+title: "Intent-Based Grafana for Open5GS"
+abstract: >-
+  A complete 5G standalone testbed (Open5GS + UERANSIM) with Prometheus/Grafana monitoring and an
+  intent engine that answers natural-language questions about the network using measured data.
+type: software
+authors:
+  - family-names: "Arefijamal"
+    given-names: "Pouria"
+    website: "https://github.com/Pouria-Arefijamal"
+repository-code: "https://github.com/Pouria-Arefijamal/Intent_Based_Graphana_for_Open5Gs"
+license: MIT
+keywords:
+  - 5G
+  - Open5GS
+  - UERANSIM
+  - Grafana
+  - Prometheus
+  - intent-based networking

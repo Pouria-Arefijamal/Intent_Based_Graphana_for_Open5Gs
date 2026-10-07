@@ -1,5 +1,7 @@
 # Intent-Based Grafana for Open5GS
 
+> **Author:** [Pouria Arefijamal](https://github.com/Pouria-Arefijamal) · MIT licence · please cite via [CITATION.cff](CITATION.cff)
+
 **Ask a 5G network questions in plain English and get answers from real measurements.**
 
 This project builds a complete, working 5G network on one computer — a 5G core ([Open5GS](https://open5gs.org)),
@@ -32,7 +34,7 @@ them, and creates a Grafana dashboard for your question.
 11. [How this repo was built: master/worker agents](#11-how-this-repo-was-built-masterworker-agents)
 12. [Security notes](#12-security-notes)
 13. [Repository layout](#13-repository-layout)
-14. [Troubleshooting, glossary, licences](#14-troubleshooting-glossary-licences)
+14. [Troubleshooting, glossary, licences](#14-author-troubleshooting-glossary-licences)
 
 ---
 
@@ -373,8 +375,9 @@ third_party/              (created by setup.sh, git-ignored) pinned Open5GS dock
 
 ---
 
-## 14. Troubleshooting, glossary, licences
+## 14. Author, troubleshooting, glossary, licences
 
+* **Author:** Pouria Arefijamal — <https://github.com/Pouria-Arefijamal>. Issues and pull requests are welcome.
 * **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** – every problem hit while building this and its fix.
 * **[docs/GLOSSARY.md](docs/GLOSSARY.md)** – 5G, networking, Prometheus/Grafana terms.
 * This repository's code: MIT ([LICENSE](LICENSE)). Open5GS (AGPL-3.0), UERANSIM (GPL-3.0), docker_open5gs (BSD-2) and the monitoring images keep their own licences; they are fetched/built on your machine and **not** redistributed here.
