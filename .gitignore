@@ -1,0 +1,14 @@
+# secrets & machine-local config — NEVER commit
+.env
+*.key
+secrets/
+# third-party sources are cloned by scripts/setup.sh at a pinned commit
+third_party/
+# runtime artefacts
+runtime/
+test_output/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
