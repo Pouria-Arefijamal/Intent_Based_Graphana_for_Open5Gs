@@ -314,6 +314,8 @@ Claude Code skill: [`.claude/skills/master-worker-agents/SKILL.md`](.claude/skil
 * A **Haiku "scout"** does mechanical work (glossary, container docs).
 * Nobody's word is trusted: the master re-runs every acceptance test; a fresh Opus reviewer audits the result.
 
+Want to share the dashboard with the world? See [grafana/community/README.md](grafana/community/README.md) (ready-made export + upload steps for grafana.com).
+
 Agent definitions: [`.claude/agents/`](.claude/agents). Copy the `.claude/` folder into any project to reuse the pattern.
 
 ---
@@ -342,6 +344,7 @@ appserver/                iperf3 "internet" server image
 exporter/                 custom Prometheus exporter
 prometheus/               scrape configuration
 grafana/                  provisioning + dashboard generator + generated dashboard JSON
+  community/              share-ready export for grafana.com + publishing guide
 intent_engine/            natural-language → PromQL → analysis service (FastAPI)
 tests/unit, tests/e2e     tests
 docs/                     SPEC, CONTAINERS, GLOSSARY, INTENT_ENGINE, TROUBLESHOOTING, TEST_REPORT
