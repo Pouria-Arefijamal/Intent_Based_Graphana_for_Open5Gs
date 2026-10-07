@@ -7,6 +7,7 @@
 #   status    show containers + whether the UE is attached
 #   logs <s>  follow the logs of one service (e.g. amf, upf, intent-engine)
 #   urls      print the web addresses
+#   setkey    store your Gemini API key (typed silently, saved only in .env) and restart the intent engine
 #   test      run the end-to-end acceptance test
 source "$(dirname "$0")/lib.sh"
 
@@ -42,6 +43,10 @@ case "${1:-help}" in
     quiet_up --build mongo
     wait_for "MongoDB healthy" 90 bash -c "[ \"\$(docker inspect -f '{{.State.Health.Status}}' ibg-mongo)\" = healthy ]" || die "mongo not healthy"
     bash scripts/provision_subscriber.sh
+    if command -v python3 >/dev/null 2>&1; then   # point the embedded chat at the port/host from .env
+      h=$(envval PUBLIC_HOST); python3 grafana/build_dashboard.py grafana/dashboards/open5gs_observatory.json \
+        --intent-url "http://${h:-localhost}:$(envval INTENT_PORT)" >/dev/null || warn "could not regenerate the dashboard"
+    fi
     say "2/4 5G core + RAN + app server + monitoring"
     quiet_up --build --scale ue=0
     say "3/4 waiting for the core network functions to register"
@@ -56,6 +61,24 @@ case "${1:-help}" in
     docker exec ibg-ue ip -4 -o addr show uesimtun0 2>/dev/null | awk '{print "UE tunnel:", $2, $4}' || true ;;
   logs)    shift; dc logs -f --tail=100 "$@" ;;
   urls)    urls ;;
+  setkey)
+    [ -f .env ] || cp .env.example .env
+    printf 'Paste your Gemini API key (input is hidden; empty = switch to the offline rules engine): '
+    read -rs KEYVAL; echo
+    # write with python so the key never appears on a command line (ps) or in shell history
+    GEMINI_KEY_VALUE="$KEYVAL" python3 - <<'PYEOF'
+import os, re
+v = os.environ["GEMINI_KEY_VALUE"].strip()
+s = open(".env").read()
+s = re.sub(r"^GEMINI_API_KEY=.*$", lambda m: "GEMINI_API_KEY=" + v, s, flags=re.M) if re.search(r"^GEMINI_API_KEY=", s, re.M) else s + "\nGEMINI_API_KEY=" + v + "\n"
+open(".env", "w").write(s)
+os.chmod(".env", 0o600)
+PYEOF
+    unset KEYVAL
+    ok "saved to .env (git-ignored)"
+    if docker inspect ibg-intent-engine >/dev/null 2>&1; then
+      dc up -d --no-deps --force-recreate intent-engine >runtime/setkey.log 2>&1 && ok "intent engine restarted with the new key" || warn "restart failed, see runtime/setkey.log"
+    fi ;;
   test)    bash scripts/e2e_test.sh ;;
   *)       sed -n '2,12p' "$0" ;;
 esac

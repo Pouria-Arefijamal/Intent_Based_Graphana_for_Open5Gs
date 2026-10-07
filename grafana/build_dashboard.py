@@ -10,6 +10,7 @@ Usage: python3 grafana/build_dashboard.py [output_path]
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -132,6 +133,17 @@ class Builder:
             "datasource": DS, "gridPos": self._place(w, h), "targets": self._targets(queries),
         }
 
+    # ---- embedded chat (the Intent Console page in an iframe) -----------------------
+    def chat(self, title: str, description: str, url: str, *, h: int = 16) -> None:
+        src = url.rstrip("/") + "/?embed=1"
+        self.panels.append({
+            "id": self._next_id(), "type": "text", "title": title, "description": description,
+            "gridPos": self._place(24, h),
+            "options": {"mode": "html", "code": {"language": "plaintext", "showLineNumbers": False, "wrapLines": True},
+                        "content": f'<iframe src="{src}" title="Intent Console" '
+                                   'style="width:100%;height:100%;min-height:420px;border:0;border-radius:6px"></iframe>'},
+        })
+
     # ---- stat ---------------------------------------------------------------
     def stat(self, title: str, description: str, queries: Sequence[Tuple[str, str]], *,
              unit: str = "none", w: int = 4, h: int = 4,
@@ -201,8 +213,18 @@ class Builder:
         self.panels.append(p)
 
 
-def build() -> Dict[str, Any]:
+def build(intent_url: str = "http://localhost:8088") -> Dict[str, Any]:
     b = Builder()
+
+    # ------------------------------------------------------------- Ask the network
+    b.row("Ask the network (Intent Console)")
+    b.chat(
+        "Ask a question about the network",
+        "Type a question in plain English (for example: is the UPF forwarding everything the UE sends?). The intent "
+        "engine turns it into safe Prometheus queries, runs them through Grafana, computes the statistics and "
+        "explains the result — with Gemini if a key is configured, otherwise with its offline rules engine. "
+        "Collapse this row if you do not need it.",
+        intent_url)
 
     # ------------------------------------------------------------------ Overview
     b.row("Overview")
@@ -477,14 +499,21 @@ def build() -> Dict[str, Any]:
     }
 
 
-def render() -> str:
-    return json.dumps(build(), indent=2, ensure_ascii=False) + "\n"
+def render(intent_url: str = "http://localhost:8088") -> str:
+    return json.dumps(build(intent_url), indent=2, ensure_ascii=False) + "\n"
 
 
 def main(argv: Sequence[str]) -> int:
-    out = Path(argv[1]) if len(argv) > 1 else OUT_DEFAULT
+    """usage: build_dashboard.py [OUTPUT.json] [--intent-url http://host:8088]"""
+    args = list(argv[1:])
+    url = os.environ.get("IBG_INTENT_URL", "http://localhost:8088")
+    if "--intent-url" in args:
+        i = args.index("--intent-url")
+        url = args[i + 1]
+        del args[i:i + 2]
+    out = Path(args[0]) if args else OUT_DEFAULT
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(), encoding="utf-8")
+    out.write_text(render(url), encoding="utf-8")
     print(f"wrote {out}")
     return 0
 

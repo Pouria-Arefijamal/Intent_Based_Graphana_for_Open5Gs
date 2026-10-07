@@ -8,7 +8,7 @@ Generated from the real result files of the last two consecutive runs of `script
 | Host | NVIDIA Jetson, ARM64, 14 cores, 122 GB RAM, Ubuntu-based, Docker Compose v5.5.1 |
 | Stack | Open5GS v2.8.0 (`f87da61`), UERANSIM v3.2.6, Prometheus 2.54.1, Grafana 11.2.0, 1 gNB + 1 UE |
 | LLM | Google Gemini free tier via the Developer API (`gemini-3.5-flash-lite` answered; the engine falls back to other models, then to the rules engine) |
-| Unit tests | **268 passed** (`pytest tests/unit`, no network, no Docker, no key) |
+| Unit tests | **269 passed** (`pytest tests/unit`, no network, no Docker, no key) |
 | End-to-end, run 1 | **37/37 passed** (2026-10-07 13:01:55) |
 | End-to-end, run 2 (back to back) | **37/37 passed** (2026-10-07 13:05:17) |
 | Clean-slate start | `scripts/ibg.sh destroy` then `scripts/ibg.sh up` (images cached): stack up and UE attached in **34 s** |

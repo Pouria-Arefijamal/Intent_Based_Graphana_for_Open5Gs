@@ -24,6 +24,8 @@ def swap(node):
 
 def main():
     d = swap(json.load(open(SRC)))
+    # the embedded chat needs this project's intent engine, so it is not part of the shared copy
+    d["panels"] = [p for p in d["panels"] if p.get("type") != "text" and p.get("title") != "Ask the network (Intent Console)"]
     d["id"] = None
     d["title"] = "Open5GS 5G SA Core - User-plane Observatory"
     d["__inputs"] = [{"name": INPUT, "label": "Prometheus", "description": "Prometheus that scrapes Open5GS, the ibg exporter and node_exporter",

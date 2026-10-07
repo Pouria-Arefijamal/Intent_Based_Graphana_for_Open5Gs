@@ -47,7 +47,7 @@
   "links": [],
   "panels": [
     {
-      "id": 1,
+      "id": 3,
       "type": "row",
       "title": "Overview",
       "collapsed": false,
@@ -55,12 +55,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 17
       },
       "panels": []
     },
     {
-      "id": 2,
+      "id": 4,
       "type": "stat",
       "title": "Network function up grid",
       "description": "One tile per container of the stack. Green UP means Docker reports the container as running; red DOWN means it exists but is stopped or crashed. Source: ibg_container_up from the custom exporter (it asks the Docker API). A tile that is missing altogether means the container was never created.",
@@ -72,7 +72,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 18
       },
       "targets": [
         {
@@ -142,7 +142,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 5,
       "type": "stat",
       "title": "SBI reachable (TCP :7777)",
       "description": "Can the exporter open a TCP connection to the Service-Based Interface port 7777 of each core network function? NFs talk to each other over this HTTP/2 interface, so a red tile means the NF process is not answering even if its container is running. Source: ibg_nf_sbi_up.",
@@ -154,7 +154,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 25
       },
       "targets": [
         {
@@ -224,7 +224,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 6,
       "type": "stat",
       "title": "Registered UEs",
       "description": "Number of phones (UEs) currently registered with the AMF, the 5G core entry point. Should be 1 when the UERANSIM UE is attached. Source: fivegs_amffunction_rm_registeredsubnbr.",
@@ -236,7 +236,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -290,7 +290,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 7,
       "type": "stat",
       "title": "PDU sessions (AMF / SMF / UPF)",
       "description": "A PDU session is the data tunnel for one UE. The AMF, SMF and UPF each count them independently; the three numbers should be equal. If they differ, session setup is stuck in the middle. Sources: amf_session, pfcp_sessions_active, fivegs_upffunction_upf_sessionnbr.",
@@ -302,7 +302,7 @@
         "h": 5,
         "w": 6,
         "x": 4,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -378,7 +378,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 8,
       "type": "stat",
       "title": "Connected gNBs",
       "description": "Number of radio base stations (gNodeBs) connected to the AMF over N2/NGAP. Should be 1 for this lab. Source: gnb.",
@@ -390,7 +390,7 @@
         "h": 5,
         "w": 4,
         "x": 10,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -444,7 +444,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 9,
       "type": "stat",
       "title": "UE data path up",
       "description": "Result of a 1-packet ping sent from the UE through its 5G tunnel (uesimtun0) to the application server, refreshed every 10 s. UP means user traffic can really cross gNB, UPF and N6. Source: ibg_path_up.",
@@ -456,7 +456,7 @@
         "h": 5,
         "w": 3,
         "x": 14,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -526,7 +526,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 10,
       "type": "stat",
       "title": "UE -> server RTT",
       "description": "Round-trip time of that ping in milliseconds. It is omitted while the path is down. In this single-host lab it is normally a few milliseconds. Source: ibg_path_rtt_ms.",
@@ -538,7 +538,7 @@
         "h": 5,
         "w": 3,
         "x": 17,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -597,7 +597,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 11,
       "type": "stat",
       "title": "UE tunnel exists",
       "description": "Does the interface uesimtun0 exist inside the UE container? It appears when the PDU session is established and gives the UE its 5G IP address. Source: ibg_ue_session_up.",
@@ -609,7 +609,7 @@
         "h": 5,
         "w": 4,
         "x": 20,
-        "y": 13
+        "y": 30
       },
       "targets": [
         {
@@ -679,7 +679,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 12,
       "type": "row",
       "title": "User plane in vs out",
       "collapsed": false,
@@ -687,12 +687,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 35
       },
       "panels": []
     },
     {
-      "id": 11,
+      "id": 13,
       "type": "timeseries",
       "title": "User plane in vs out - uplink",
       "description": "Uplink = UE to application server. Three measurement points along the same flow: what the UE transmits into its tunnel, what the UPF reads from its ogstun device, and what finally arrives at the server on the N6 side. In a healthy path the three lines overlap. A gap between lines shows where packets are lost. Sources: ibg_iface_* counters turned into bits per second with rate()*8.",
@@ -704,7 +704,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 36
       },
       "targets": [
         {
@@ -841,7 +841,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 14,
       "type": "timeseries",
       "title": "User plane in vs out - downlink",
       "description": "Downlink = application server to UE, measured in the opposite order: what the server sends, what the UPF writes into ogstun, and what the UE receives on uesimtun0. Overlapping lines mean nothing is lost; a gap shows the hop where traffic disappears. Sources: ibg_iface_* counters, rate()*8.",
@@ -853,7 +853,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 36
       },
       "targets": [
         {
@@ -990,7 +990,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 15,
       "type": "timeseries",
       "title": "Delivery ratio (end-to-end)",
       "description": "Share of the traffic that survives the whole 5G path: uplink = server received / UE sent, downlink = UE received / server sent, in percent. 100 % means perfect delivery. Below 90 % (red) packets are being lost; above 110 % (orange) the extra bytes are protocol overhead such as GTP-U encapsulation or TCP ACKs. Shown only while traffic is above 1 kbps, otherwise the ratio is meaningless and the panel stays empty.",
@@ -1002,7 +1002,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 45
       },
       "targets": [
         {
@@ -1094,7 +1094,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 16,
       "type": "stat",
       "title": "Delivery ratio now",
       "description": "Latest value of the two delivery ratios (see the panel on the left). Green is 95-110 %, yellow 90-95 %, red below 90 %, orange above 110 %. Empty when there is no traffic.",
@@ -1106,7 +1106,7 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 28
+        "y": 45
       },
       "targets": [
         {
@@ -1180,7 +1180,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 17,
       "type": "timeseries",
       "title": "UPF ogstun drops",
       "description": "Packets per second dropped on the UPF user-plane TUN device (rx plus tx). It should stay at 0. A positive value means the kernel, not the network, discarded packets inside the UPF. Source: ibg_iface_rx_drop_total / ibg_iface_tx_drop_total.",
@@ -1192,7 +1192,7 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 28
+        "y": 45
       },
       "targets": [
         {
@@ -1265,7 +1265,7 @@
       }
     },
     {
-      "id": 16,
+      "id": 18,
       "type": "timeseries",
       "title": "gNB throughput (eth0)",
       "description": "Traffic crossing the gNB container network interface, in bits per second. It carries the GTP-U tunnel towards the UPF (N3) and the radio-link simulation, so it is slightly larger than the user traffic. Sources: ibg_iface_rx_bytes_total / tx_bytes_total for service gnb.",
@@ -1277,7 +1277,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 36
+        "y": 53
       },
       "targets": [
         {
@@ -1357,7 +1357,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 19,
       "type": "timeseries",
       "title": "UPF user-plane packets (ogstun)",
       "description": "User packets per second crossing the UPF's TUN device ogstun: uplink = decapsulated from the gNB, downlink = going back towards the gNB. (Open5GS's own GTP-U packet counters are stubs that stay at 0, so this comes from the interface counters.) Source: ibg_iface_*_packets_total for upf/ogstun.",
@@ -1369,7 +1369,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 36
+        "y": 53
       },
       "targets": [
         {
@@ -1449,7 +1449,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 20,
       "type": "row",
       "title": "Core native metrics",
       "collapsed": false,
@@ -1457,12 +1457,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 60
       },
       "panels": []
     },
     {
-      "id": 19,
+      "id": 21,
       "type": "timeseries",
       "title": "Open5GS metrics endpoints up",
       "description": "Prometheus scrape status of the native metrics endpoint (:9091) of AMF, SMF, UPF and PCF. 1 = the endpoint answered the last scrape, 0 = it did not. Source: the standard up metric of job open5gs.",
@@ -1474,7 +1474,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 44
+        "y": 61
       },
       "targets": [
         {
@@ -1548,7 +1548,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 22,
       "type": "timeseries",
       "title": "AMF - registrations",
       "description": "AMF = Access and Mobility Function. Initial registration requests received and accepted per second (the attach procedure of a UE). Equal lines mean every attempt succeeded. Sources: fivegs_amffunction_rm_reginitreq / rm_reginitsucc.",
@@ -1560,7 +1560,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 44
+        "y": 61
       },
       "targets": [
         {
@@ -1640,7 +1640,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 23,
       "type": "timeseries",
       "title": "AMF / SMF / UPF - active sessions",
       "description": "PDU sessions as counted by the three core functions. They should be identical; a lasting difference means a session is half-created. Sources: amf_session, pfcp_sessions_active, fivegs_upffunction_upf_sessionnbr.",
@@ -1652,7 +1652,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 44
+        "y": 61
       },
       "targets": [
         {
@@ -1743,7 +1743,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 24,
       "type": "timeseries",
       "title": "SMF - sessions",
       "description": "SMF = Session Management Function. UEs it manages, PFCP sessions it has opened on the UPF (N4) and bearers (QoS flows). All three should be 1 for our single UE. Sources: ues_active, pfcp_sessions_active, bearers_active.",
@@ -1755,7 +1755,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 51
+        "y": 68
       },
       "targets": [
         {
@@ -1846,7 +1846,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 25,
       "type": "timeseries",
       "title": "Registered UEs and connected gNBs",
       "description": "History of the two basic attach indicators: UEs registered at the AMF and gNBs connected to it. A drop to 0 shows exactly when the radio side or the UE disconnected. Sources: fivegs_amffunction_rm_registeredsubnbr, gnb.",
@@ -1858,7 +1858,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 51
+        "y": 68
       },
       "targets": [
         {
@@ -1938,7 +1938,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 26,
       "type": "row",
       "title": "Containers",
       "collapsed": false,
@@ -1946,12 +1946,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 75
       },
       "panels": []
     },
     {
-      "id": 25,
+      "id": 27,
       "type": "timeseries",
       "title": "CPU per container",
       "description": "CPU used by each container in percent of one core (100 % = one full core). The UPF CPU rises with user-plane traffic because it forwards every packet in user space. Source: ibg_container_cpu_seconds_total, read by the custom exporter from the Docker stats API.",
@@ -1963,7 +1963,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 59
+        "y": 76
       },
       "targets": [
         {
@@ -2032,7 +2032,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 28,
       "type": "timeseries",
       "title": "Memory per container",
       "description": "Working-set memory (RAM actually in use) of each container. A steadily climbing line can mean a memory leak. Source: ibg_container_memory_bytes (Docker stats API, usage minus reclaimable cache).",
@@ -2044,7 +2044,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 59
+        "y": 76
       },
       "targets": [
         {
@@ -2113,7 +2113,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 29,
       "type": "timeseries",
       "title": "Network receive per container (eth0)",
       "description": "Bits per second received on eth0 by the containers the exporter measures: UPF (N3/N4/N6), gNB, UE and the application server. Includes signalling as well as user traffic. Source: ibg_iface_rx_bytes_total.",
@@ -2125,7 +2125,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 67
+        "y": 84
       },
       "targets": [
         {
@@ -2194,7 +2194,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 30,
       "type": "timeseries",
       "title": "Network transmit per container (eth0)",
       "description": "Bits per second sent on eth0 by the UPF, gNB, UE and application server. Source: ibg_iface_tx_bytes_total.",
@@ -2206,7 +2206,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 67
+        "y": 84
       },
       "targets": [
         {
@@ -2275,7 +2275,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 31,
       "type": "timeseries",
       "title": "UPF CPU",
       "description": "CPU of the UPF container alone, in percent of one core. The UPF forwards every user packet in software, so this line follows the traffic in the user-plane panels: push more traffic and it rises. Source: ibg_container_cpu_seconds_total{service=\"upf\"}.",
@@ -2287,7 +2287,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 75
+        "y": 92
       },
       "targets": [
         {
@@ -2356,7 +2356,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 32,
       "type": "row",
       "title": "N6 qdisc",
       "collapsed": false,
@@ -2364,12 +2364,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 81
+        "y": 98
       },
       "panels": []
     },
     {
-      "id": 31,
+      "id": 33,
       "type": "timeseries",
       "title": "N6 qdisc backlog (packets)",
       "description": "N6 is the link between the UPF and the application server. This is the number of packets waiting in the egress queue (qdisc) of eth0 as reported by tc, one line per service: upf (forwarded user traffic leaving towards the server, the realistic N6 bottleneck) and app-server (the server's own egress). A growing backlog means traffic arrives faster than the queue can send, which is what a bandwidth limit produces. Source: ibg_qdisc_backlog_packets.",
@@ -2381,7 +2381,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 82
+        "y": 99
       },
       "targets": [
         {
@@ -2450,7 +2450,7 @@
       }
     },
     {
-      "id": 32,
+      "id": 34,
       "type": "timeseries",
       "title": "N6 qdisc backlog (bytes)",
       "description": "Same queues (upf and app-server eth0), measured in bytes instead of packets. Source: ibg_qdisc_backlog_bytes.",
@@ -2462,7 +2462,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 82
+        "y": 99
       },
       "targets": [
         {
@@ -2531,7 +2531,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 35,
       "type": "timeseries",
       "title": "N6 qdisc drops",
       "description": "Packets per second each queue (upf and app-server eth0) threw away because it was full or over its configured limit. Persistent drops during a transfer are the clearest sign of a congested or rate-limited N6 link. Source: ibg_qdisc_drops_total.",
@@ -2543,7 +2543,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 89
+        "y": 106
       },
       "targets": [
         {
@@ -2616,7 +2616,7 @@
       }
     },
     {
-      "id": 34,
+      "id": 36,
       "type": "timeseries",
       "title": "N6 qdisc overlimits",
       "description": "How often per second the qdisc reported that traffic exceeded its configured rate (an overlimit event). Typical for a token-bucket (tbf/htb) shaper that is delaying packets. Source: ibg_qdisc_overlimits_total.",
@@ -2628,7 +2628,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 89
+        "y": 106
       },
       "targets": [
         {
@@ -2697,7 +2697,7 @@
       }
     },
     {
-      "id": 35,
+      "id": 37,
       "type": "timeseries",
       "title": "N6 qdisc sent rate",
       "description": "Bits per second actually dequeued by the qdisc towards the wire. Compared with the offered load it shows the effective bandwidth cap. Source: ibg_qdisc_sent_bytes_total.",
@@ -2709,7 +2709,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 89
+        "y": 106
       },
       "targets": [
         {
@@ -2778,7 +2778,7 @@
       }
     },
     {
-      "id": 36,
+      "id": 38,
       "type": "row",
       "title": "Host",
       "collapsed": false,
@@ -2786,12 +2786,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 113
       },
       "panels": []
     },
     {
-      "id": 37,
+      "id": 39,
       "type": "timeseries",
       "title": "Host CPU",
       "description": "CPU utilisation of the whole machine running the lab, in percent (100 minus idle time). Source: node_exporter node_cpu_seconds_total.",
@@ -2803,7 +2803,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 97
+        "y": 114
       },
       "targets": [
         {
@@ -2873,7 +2873,7 @@
       }
     },
     {
-      "id": 38,
+      "id": 40,
       "type": "timeseries",
       "title": "Host memory used",
       "description": "Percentage of the machine's RAM in use (total minus available). Source: node_exporter node_memory_MemAvailable_bytes and node_memory_MemTotal_bytes.",
@@ -2885,7 +2885,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 97
+        "y": 114
       },
       "targets": [
         {
@@ -2955,7 +2955,7 @@
       }
     },
     {
-      "id": 39,
+      "id": 41,
       "type": "timeseries",
       "title": "Host load (1 min)",
       "description": "Load average over the last minute: roughly the number of processes waiting for CPU. A value above the number of CPU cores means the host is overloaded. Source: node_exporter node_load1.",
@@ -2967,7 +2967,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 97
+        "y": 114
       },
       "targets": [
         {
@@ -3036,7 +3036,7 @@
       }
     },
     {
-      "id": 40,
+      "id": 42,
       "type": "timeseries",
       "title": "Host network",
       "description": "Total bits per second received and sent by the host's physical and virtual interfaces (loopback excluded). Source: node_exporter node_network_*_bytes_total.",
@@ -3048,7 +3048,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 104
+        "y": 121
       },
       "targets": [
         {
@@ -3128,7 +3128,7 @@
       }
     },
     {
-      "id": 41,
+      "id": 43,
       "type": "timeseries",
       "title": "Exporter health",
       "description": "Health of the custom exporter that feeds most panels of this dashboard: seconds spent on the last collection and collector failures per second. Failures mean a source such as a container or the tc tool could not be read and its metric is intentionally missing. Sources: ibg_exporter_scrape_seconds, ibg_exporter_errors_total.",
@@ -3140,7 +3140,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 104
+        "y": 121
       },
       "targets": [
         {

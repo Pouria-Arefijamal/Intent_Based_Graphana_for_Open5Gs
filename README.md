@@ -100,7 +100,7 @@ cd Intent_Based_Graphana_for_Open5Gs
 scripts/ibg.sh setup     # checks Docker, fetches Open5GS packaging (pinned commit), builds the 5G images
                          # FIRST TIME ONLY: compiling Open5GS takes 15–40 minutes. Go get coffee.
 
-nano .env                # (optional) paste your key:  GEMINI_API_KEY=...   — .env is git-ignored
+scripts/ibg.sh setkey      # (optional) paste your free Gemini key (hidden input) — or edit .env, see §7.2
 scripts/ibg.sh up        # starts everything and attaches the UE (~2 minutes)
 ```
 
@@ -123,7 +123,7 @@ scripts/traffic.sh udp-up 40 30      # 40 Mbit/s uplink for 30 s through the 5G 
 scripts/traffic.sh tcp-down 20       # TCP downlink for 20 s
 ```
 
-Other commands: `scripts/ibg.sh status | logs <service> | urls | test | down | destroy`.
+Other commands: `scripts/ibg.sh status | logs <service> | urls | setkey | test | down | destroy`.
 
 ---
 
@@ -190,6 +190,7 @@ interface counters include IP/UDP headers while iperf3 reports payload only.
 
 Rows from top to bottom (every panel has an "i" description in Grafana):
 
+0. **Ask the network** – the Intent Console embedded at the top of the dashboard: type a question, get an analysis, without leaving the dashboard (collapse the row if you do not need it).
 1. **Overview** – green/red tile per container, registered UEs, PDU sessions (AMF = SMF = UPF should all be 1), connected gNBs, data path up/RTT.
 2. **User plane — in vs out** – uplink and downlink at each measurement point, delivery ratio (%), UPF packet rate, drops.
 3. **Core native metrics** – AMF registrations, SMF sessions/PFCP, Open5GS endpoints up.
@@ -203,7 +204,7 @@ Time range (top right) and the auto-refresh (5 s) are yours to change.
 
 ## 7. The Intent Console (natural-language questions)
 
-Open Grafana → dashboard **Intent Console** (or <http://localhost:8088>). Click an example or type your own question and press *Analyse*.
+Use the **Ask the network** row at the top of the *Open5GS Observatory* dashboard, the separate **Intent Console** dashboard, or <http://localhost:8088>. All three are the same console. Click an example or type your own question and press *Analyse*.
 
 ### 7.1 What happens when you press the button
 
@@ -224,7 +225,25 @@ Safety by design:
 * **The AI cannot invent numbers.** All figures come from Prometheus; the AI only words them.
 * Your key lives only in `.env` (git-ignored) and is sent only to Google as a request header. It is never logged or returned.
 
-### 7.2 Things to ask
+### 7.2 Where do I set the Gemini API key?
+
+Get a free key at <https://aistudio.google.com/apikey>. There is exactly **one** place the key lives: the git-ignored file `.env`
+in the project folder (line `GEMINI_API_KEY=`). Two ways to set it:
+
+```bash
+scripts/ibg.sh setkey          # asks for the key with hidden input, writes it to .env (chmod 600) and restarts the intent engine
+```
+or edit `.env` yourself and apply it:
+```bash
+nano .env                      # GEMINI_API_KEY=your-key-here
+docker compose --env-file config/open5gs.env --env-file .env up -d --no-deps --force-recreate intent-engine
+```
+Check it worked: <http://localhost:8088/healthz> shows `"gemini_configured": true`, and answers in the console say `engine: gemini:<model>`.
+Leave the key empty (or run `setkey` and press Enter) to use the offline rules engine. Never put the key in `docker-compose.yml`,
+the README or a commit — and never in the chat box of the console (that text is treated as a question, not a setting).
+The chat in the dashboard cannot read or change the key.
+
+### 7.3 Things to ask
 
 * *Is the UPF forwarding everything the UE sends? Compare in vs out traffic for the last 10 minutes.*
 * *Is any network function down or overloaded?*

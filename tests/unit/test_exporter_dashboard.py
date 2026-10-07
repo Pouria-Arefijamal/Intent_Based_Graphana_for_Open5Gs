@@ -51,7 +51,7 @@ def metric_names(expr):
 
 
 def all_panels(d):
-    return [p for p in d["panels"] if p["type"] != "row"]
+    return [p for p in d["panels"] if p["type"] not in ("row", "text")]  # data panels only
 
 
 def test_deterministic():
@@ -83,7 +83,7 @@ def test_header_fields():
 def test_rows_and_unique_ids():
     d = json.loads(bd.render())
     rows = [p["title"] for p in d["panels"] if p["type"] == "row"]
-    assert rows == ["Overview", "User plane in vs out", "Core native metrics",
+    assert rows == ["Ask the network (Intent Console)", "Overview", "User plane in vs out", "Core native metrics",
                     "Containers", "N6 qdisc", "Host"]
     ids = [p["id"] for p in d["panels"]]
     assert len(ids) == len(set(ids))
@@ -181,3 +181,16 @@ def test_prometheus_config_jobs():
         assert needle in text, needle
     for job in ("open5gs", "cadvisor", "node", "ibg_exporter", "intent_engine", "prometheus"):
         assert f"job_name: {job}" in text
+
+
+def test_chat_panel_embeds_the_intent_console_and_follows_the_url():
+    d = json.loads(bd.render("http://myhost:8123/"))
+    chat = [p for p in d["panels"] if p["type"] == "text"]
+    assert len(chat) == 1
+    html = chat[0]["options"]["content"]
+    assert chat[0]["options"]["mode"] == "html"
+    assert 'src="http://myhost:8123/?embed=1"' in html and "<iframe" in html
+    assert len(chat[0]["description"]) > 30
+    # the default build points at the default port
+    default = [p for p in json.loads(bd.render())["panels"] if p["type"] == "text"][0]
+    assert 'src="http://localhost:8088/?embed=1"' in default["options"]["content"]
