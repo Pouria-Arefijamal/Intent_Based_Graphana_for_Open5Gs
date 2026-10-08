@@ -13,7 +13,9 @@ warn() { printf '\033[1;33m ! \033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m ✘ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # read one variable from .env / config/open5gs.env (no shell eval, no secrets echoed)
-envval() { grep -hE "^$1=" .env config/open5gs.env 2>/dev/null | tail -1 | cut -d= -f2-; }
+# (a missing key returns an empty string and success — with `set -e -o pipefail` a failing grep would
+#  otherwise kill the calling script silently)
+envval() { grep -hE "^$1=" .env config/open5gs.env 2>/dev/null | tail -1 | cut -d= -f2- || true; }
 
 # wait_for "<description>" <timeout-seconds> <command...>  — retries every 2 s
 wait_for() {

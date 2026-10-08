@@ -8,7 +8,7 @@ Generated from the real result files of the last two consecutive runs of `script
 | Host | NVIDIA Jetson, ARM64, 14 cores, 122 GB RAM, Ubuntu-based, Docker Compose v5.5.1 |
 | Stack | Open5GS v2.8.0 (`f87da61`), UERANSIM v3.2.6, Prometheus 2.54.1, Grafana 11.2.0, 1 gNB + 1 UE |
 | LLM | Google Gemini free tier via the Developer API (`gemini-3.5-flash-lite` answered; the engine falls back to other models, then to the rules engine) |
-| Unit tests | **269 passed** (`pytest tests/unit`, no network, no Docker, no key) |
+| Unit tests | **272 passed** (`pytest tests/unit`, no network, no Docker, no key) |
 | End-to-end, run 1 | **37/37 passed** (2026-10-07 13:01:55) |
 | End-to-end, run 2 (back to back) | **37/37 passed** (2026-10-07 13:05:17) |
 | Clean-slate start | `scripts/ibg.sh destroy` then `scripts/ibg.sh up` (images cached): stack up and UE attached in **34 s** |
@@ -82,6 +82,8 @@ Generated from the real result files of the last two consecutive runs of `script
 | Independent code review | doc errors (panel counts, cAdvisor claims, ports, read-only wording), tautological tests, key on a shell command line in the test | corrected; tests rewritten so they can fail |
 | e2e run | recreating the UE container drops the tunnel route → traffic silently bypasses 5G | e2e now checks the route explicitly; documented in TROUBLESHOOTING |
 | e2e runs back to back | earlier congestion leaks into the next run's "healthy" window | test waits until the queue has been drop-free for 2 minutes |
+| user ran `scripts/ibg.sh up` after a reboot | script stopped silently after the database step (a missing `PUBLIC_HOST` made a `set -e` pipeline fail), then the UE found a *barred* cell because the gNB started before the AMF and the attach check read a stale log line | lookup helper can no longer fail; attach checks the log only since the container's last start and restarts the gNB/UE once if needed; regression tests |
+| e2e right after a repair | UE series had gaps, so window-based comparisons disagreed | test waits for 3 minutes of gap-free data |
 
 ## Known limits (honest)
 

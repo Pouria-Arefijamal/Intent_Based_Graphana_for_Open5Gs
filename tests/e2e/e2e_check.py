@@ -116,6 +116,21 @@ def main():
     a = ap.parse_args()
     key_configured = bool(envval("GEMINI_API_KEY"))
 
+    # Settling: the analysis windows reach back ~3 min. If a container (e.g. the UE) was just (re)created, its series
+    # have gaps and any window-based comparison is meaningless. Wait until the UE tunnel series is gap-free for 3 min.
+    waited = 0
+    while waited < 240:
+        try:
+            n = q_instant('count_over_time(ibg_iface_tx_bytes_total{service="ue",iface="uesimtun0"}[3m])')
+            up = q_instant('min_over_time(ibg_path_up[3m])')
+        except Exception:
+            n, up = [], []
+        if n and n[0][1] >= 32 and up and up[0][1] == 1.0:   # 3 min / 5 s scrape = 36 samples
+            break
+        if waited == 0:
+            print("  (stack was changed recently: waiting for 3 minutes of gap-free data before measuring…)")
+        time.sleep(10)
+        waited += 10
     section("1. Stack health (via Prometheus / Grafana)")
     tg = http(PROM + "/api/v1/targets")["data"]["activeTargets"]
     down = [t["labels"]["job"] + "@" + t["labels"]["instance"] for t in tg if t["health"] != "up"]
